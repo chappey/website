@@ -12,23 +12,6 @@ A responsive, multi-page portfolio site built with **Bootstrap 5.3**, hosted as 
 | Projects | `projects.html` | Portfolio card grid |
 | Contact | `contact.html` | Contact form & socials |
 
-## Local Development
-
-Serve from the **repository root** (one level above this folder):
-
-```bash
-# Python
-python -m http.server 8080
-
-# Node (npx)
-npx serve .
-```
-
-Then open `http://localhost:8080/portfolio/` in your browser.
-
-## Deployment
-
-This site is deployed automatically via **GitHub Pages** — just push to the branch that Pages is configured to serve. No CI/CD pipeline needed.
 
 ## Customisation
 
