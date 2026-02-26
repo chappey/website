@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Solar System</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #050505;
+            --ui-bg: rgba(0, 0, 0, 0.85);
+            --accent: #7a7adb;
+            --text: #eee;
+            --mono: 'JetBrains Mono', monospace;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            color: var(--text);
+            font-family: var(--mono);
+            overflow: hidden;
+            touch-action: none;
+            /* Prevents browser handling of gestures */
+        }
+
+        canvas {
+            display: block;
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .panel {
+            background: var(--ui-bg);
+            border: 1px solid #333;
+            padding: 12px;
+            border-radius: 4px;
+            pointer-events: auto;
+            backdrop-filter: blur(8px);
+            max-width: 320px;
+        }
+
+        h1 {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            color: #ffcc00;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .data-point {
+            font-size: 11px;
+            margin-bottom: 4px;
+            white-space: nowrap;
+        }
+
+        .data-val {
+            color: #9cdcfe;
+        }
+
+        .controls {
+            margin-top: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        button {
+            background: #333;
+            color: var(--text);
+            border: 1px solid #444;
+            padding: 8px 12px;
+            font-family: var(--mono);
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-grow: 1;
+            text-align: center;
+        }
+
+        button:active {
+            background: #444;
+            border-color: var(--accent);
+        }
+
+
+        @media (max-width: 600px) {
+            #ui-layer {
+                top: auto;
+                bottom: 10px;
+            }
+
+            .panel {
+                width: calc(100% - 24px);
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="ui-layer">
+        <div class="panel">
+            <h1>// SYSTEM.ORBIT_VIEW</h1>
+            <div class="data-point">TIMESTAMP: <span id="ts" class="data-val">2026.02.02 23:13:00</span></div>
+            <div class="data-point">TPS_MOD: <span id="speed" class="data-val">1.0x</span></div>
+            <div class="data-point">ZOOM_F: <span id="zoom-lvl" class="data-val">1.00</span></div>
+
+            <div class="controls">
+                <button id="btn-pause">PAUSE</button>
+                <button id="btn-speed">TIME++</button>
+                <button id="btn-reset">SYNC</button>
+            </div>
+        </div>
+    </div>
+
+
+    <canvas id="simCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- Simulation State ---
+        let currentTime = new Date();
+        const TIME_SCALES = [
+            { label: "1.0x", mult: 1 },
+            { label: "1 MIN/S", mult: 60 },
+            { label: "1 HOUR/S", mult: 3600 },
+            { label: "1 DAY/S", mult: 86400 },
+            { label: "1 WEEK/S", mult: 604800 },
+            { label: "1 MONTH/S", mult: 2592000 },
+            { label: "1 YEAR/S", mult: 31536000 }
+        ];
+        let timeScaleIndex = 0;
+        let isPaused = false;
+        let zoom = 0.8;
+        let offset = { x: 0, y: 0 };
+
+        // Input State
+        let isDragging = false;
+        let lastMouse = { x: 0, y: 0 };
+        let lastPinchDistance = 0;
+
+        // --- Planetary Data ---
+        const planets = [
+            { name: "MERCURY", a: 0.387, e: 0.2056, period: 0.24, L: 252.25, color: "#888", size: 3 },
+            { name: "VENUS", a: 0.723, e: 0.0067, period: 0.615, L: 181.98, color: "#e3bb76", size: 5 },
+            {
+                name: "EARTH", a: 1.000, e: 0.0167, period: 1.0, L: 100.46, color: "#4a90e2", size: 5, satellites: [
+                    { name: "MOON", a: 0.00257 * 10, e: 0.0549, period: 0.0748, L: 135.27, color: "#999", size: 1.5 }
+                ]
+            },
+            { name: "MARS", a: 1.524, e: 0.0934, period: 1.88, L: 355.45, color: "#e26a6a", size: 4 },
+            { name: "JUPITER", a: 5.203, e: 0.0484, period: 11.86, L: 34.40, color: "#d2b48c", size: 10 },
+            { name: "SATURN", a: 9.537, e: 0.0541, period: 29.45, L: 49.94, color: "#c5b358", size: 9, rings: true },
+            { name: "URANUS", a: 19.19, e: 0.0472, period: 84.01, L: 313.23, color: "#add8e6", size: 7 },
+            { name: "NEPTUNE", a: 30.07, e: 0.0086, period: 164.8, L: 304.34, color: "#4169e1", size: 7 },
+            { name: "PLUTO", a: 39.48, e: 0.2480, period: 248.0, L: 238.92, color: "#777", size: 2 }
+        ];
+
+        let selectedPlanet = null;
+        const AU_PX = 60;
+        const J2000 = new Date("2000-01-01T12:00:00Z");
+
+        function init() {
+            resize();
+            window.addEventListener('resize', resize);
+
+            // Mouse Events
+            canvas.addEventListener('mousedown', startDragging);
+            canvas.addEventListener('click', handleClick);
+            window.addEventListener('mouseup', stopDragging);
+            window.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('wheel', handleWheel, { passive: false });
+
+            // Touch Events
+            canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+            canvas.addEventListener('touchend', stopDragging);
+
+            // UI Buttons
+            document.getElementById('btn-pause').onclick = () => {
+                isPaused = !isPaused;
+                document.getElementById('btn-pause').innerText = isPaused ? "RESUME" : "PAUSE";
+            };
+            document.getElementById('btn-speed').onclick = () => {
+                timeScaleIndex = (timeScaleIndex + 1) % TIME_SCALES.length;
+                document.getElementById('speed').innerText = TIME_SCALES[timeScaleIndex].label;
+            };
+            document.getElementById('btn-reset').onclick = () => {
+                currentTime = new Date();
+                timeScaleIndex = 0;
+                document.getElementById('speed').innerText = TIME_SCALES[timeScaleIndex].label;
+            };
+
+            requestAnimationFrame(render);
+        }
+
+        function resize() {
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = window.innerWidth * dpr;
+            canvas.height = window.innerHeight * dpr;
+            canvas.style.width = window.innerWidth + 'px';
+            canvas.style.height = window.innerHeight + 'px';
+            ctx.resetTransform();
+            ctx.scale(dpr, dpr);
+
+            document.getElementById('zoom-lvl').innerText = zoom.toFixed(2);
+        }
+
+        // --- Input Handling ---
+
+        function handleClick(e) {
+            if (isDragging && (Math.abs(e.clientX - lastMouse.x) > 5 || Math.abs(e.clientY - lastMouse.y) > 5)) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const clickX = (e.clientX - rect.left - canvas.width / 2 / (window.devicePixelRatio || 1) - offset.x) / zoom;
+            const clickY = (e.clientY - rect.top - canvas.height / 2 / (window.devicePixelRatio || 1) - offset.y) / zoom;
+
+            let found = null;
+            planets.forEach(p => {
+                const pos = calculatePosition(p, currentTime);
+                const dist = Math.hypot(clickX - pos.x / AU_PX * (AU_PX), clickY - pos.y / AU_PX * (AU_PX));
+                // Hitbox relative to zoom
+                const hitRadius = Math.max(20 / zoom, p.size * 2);
+                if (dist < hitRadius) found = p;
+            });
+
+            selectedPlanet = found === selectedPlanet ? null : found;
+        }
+
+        function startDragging(e) {
+            isDragging = true;
+            const pos = e.touches ? e.touches[0] : e;
+            lastOriginalMouse = { x: pos.clientX, y: pos.clientY };
+            lastMouse = { x: pos.clientX, y: pos.clientY };
+        }
+
+        function stopDragging() {
+            isDragging = false;
+            lastPinchDistance = 0;
+        }
+
+        function handleMouseMove(e) {
+            if (!isDragging) return;
+            offset.x += e.clientX - lastMouse.x;
+            offset.y += e.clientY - lastMouse.y;
+            lastMouse = { x: e.clientX, y: e.clientY };
+        }
+
+        function handleWheel(e) {
+            e.preventDefault();
+            const factor = e.deltaY > 0 ? 0.9 : 1.1;
+            applyZoom(factor, e.clientX, e.clientY);
+        }
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+            if (e.touches.length === 1) {
+                startDragging(e);
+            } else if (e.touches.length === 2) {
+                lastPinchDistance = getPinchDist(e);
+            }
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (e.touches.length === 1 && isDragging) {
+                const touch = e.touches[0];
+                offset.x += touch.clientX - lastMouse.x;
+                offset.y += touch.clientY - lastMouse.y;
+                lastMouse = { x: touch.clientX, y: touch.clientY };
+            } else if (e.touches.length === 2) {
+                const dist = getPinchDist(e);
+                if (lastPinchDistance > 0) {
+                    const factor = dist / lastPinchDistance;
+                    const focalX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                    const focalY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                    applyZoom(factor, focalX, focalY);
+                }
+                lastPinchDistance = dist;
+            }
+        }
+
+        function getPinchDist(e) {
+            return Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+        }
+
+        function applyZoom(factor, focalX, focalY) {
+            // Default focal point to center if not provided
+            if (focalX === undefined) focalX = canvas.width / 2 / (window.devicePixelRatio || 1);
+            if (focalY === undefined) focalY = canvas.height / 2 / (window.devicePixelRatio || 1);
+
+            const newZoom = zoom * factor;
+            if (newZoom > 0.005 && newZoom < 500) {
+                const centerX = canvas.width / 2 / (window.devicePixelRatio || 1);
+                const centerY = canvas.height / 2 / (window.devicePixelRatio || 1);
+
+                // Adjust offset to zoom relative to focal point
+                offset.x = (focalX - centerX) - factor * (focalX - centerX - offset.x);
+                offset.y = (focalY - centerY) - factor * (focalY - centerY - offset.y);
+
+                zoom = newZoom;
+                document.getElementById('zoom-lvl').innerText = zoom.toFixed(2);
+            }
+        }
+
+        // --- Math & Rendering ---
+
+        function solveKepler(M, e) {
+            let E = M;
+            for (let i = 0; i < 10; i++) {
+                E = E - (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+            }
+            return E;
+        }
+
+        function calculatePosition(planet, date) {
+            const diffDays = (date - J2000) / (1000 * 60 * 60 * 24);
+            const n = (2 * Math.PI) / (planet.period * 365.25);
+            // Mean Anomaly in radians
+            const M = (planet.L * (Math.PI / 180) + n * diffDays) % (2 * Math.PI);
+
+            const E = solveKepler(M, planet.e);
+
+            // Coordinates in AU (Sun at focus 0,0)
+            const x = planet.a * (Math.cos(E) - planet.e);
+            const y = planet.a * Math.sqrt(1 - planet.e * planet.e) * Math.sin(E);
+
+            return {
+                x: x * AU_PX,
+                y: y * AU_PX
+            };
+        }
+
+        function render() {
+            if (!isPaused) {
+                const delta = 16.67 * TIME_SCALES[timeScaleIndex].mult;
+                currentTime = new Date(currentTime.getTime() + delta);
+                const dateStr = currentTime.toISOString().replace('T', ' ').substring(0, 19).replace(/-/g, '.');
+                document.getElementById('ts').innerText = dateStr;
+            }
+
+            ctx.fillStyle = '#050505';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(canvas.width / 2 + offset.x, canvas.height / 2 + offset.y);
+            ctx.scale(zoom, zoom);
+
+            // Sun
+            ctx.beginPath();
+            ctx.arc(0, 0, 8, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffcc00';
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#ffcc00';
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Planets
+            planets.forEach(p => {
+                const pos = calculatePosition(p, currentTime);
+                const isSelected = selectedPlanet === p;
+
+                // Orbit
+                ctx.beginPath();
+                const b = p.a * Math.sqrt(1 - p.e * p.e);
+                ctx.ellipse(-p.a * p.e * AU_PX, 0, p.a * AU_PX, b * AU_PX, 0, 0, Math.PI * 2);
+                ctx.strokeStyle = isSelected ? 'rgba(122, 122, 219, 0.6)' : 'rgba(255, 255, 255, 0.1)';
+                ctx.lineWidth = (isSelected ? 2 : 1) / zoom;
+                ctx.stroke();
+
+                // Planet
+                ctx.beginPath();
+                const drawSize = Math.max(1.5 / zoom, p.size / Math.sqrt(zoom));
+                ctx.arc(pos.x, pos.y, drawSize, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                if (isSelected) {
+                    ctx.shadowBlur = 10 / zoom;
+                    ctx.shadowColor = p.color;
+                }
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // Saturn Rings
+                if (p.rings) {
+                    ctx.beginPath();
+                    ctx.ellipse(pos.x, pos.y, (p.size * 1.8) / Math.sqrt(zoom), (p.size * 0.7) / Math.sqrt(zoom), 0.5, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                    ctx.lineWidth = 1 / zoom;
+                    ctx.stroke();
+                }
+
+                // Satellites (Moons)
+                const moonThreshold = 12; // Start showing moons when they are > 18px from parent
+                if (p.satellites && zoom > moonThreshold) {
+                    p.satellites.forEach(s => {
+                        const sPosRel = calculatePosition(s, currentTime);
+                        const sPos = { x: pos.x + sPosRel.x, y: pos.y + sPosRel.y };
+
+                        // Moon Orbit (only if zoomed in)
+                        if (zoom > 25) {
+                            ctx.beginPath();
+                            const sb = s.a * Math.sqrt(1 - s.e * s.e);
+                            ctx.ellipse(pos.x - s.a * s.e * AU_PX, pos.y, s.a * AU_PX, sb * AU_PX, 0, 0, Math.PI * 2);
+                            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+                            ctx.lineWidth = 1 / zoom;
+                            ctx.stroke();
+                        }
+
+                        ctx.beginPath();
+                        ctx.arc(sPos.x, sPos.y, s.size / Math.sqrt(zoom), 0, Math.PI * 2);
+                        ctx.fillStyle = s.color;
+                        ctx.fill();
+                    });
+                }
+
+                // Labels (Dynamic scaling: stays roughly constant on screen but respects min/max)
+                const fontSize = Math.min(14, Math.max(10, 12 / zoom));
+                if (zoom > 0.05) {
+                    ctx.fillStyle = isSelected ? '#fff' : '#eee';
+                    ctx.font = `${fontSize}px 'JetBrains Mono'`;
+                    ctx.fillText(p.name, pos.x + 8 / zoom, pos.y + 4 / zoom);
+                }
+            });
+
+            ctx.restore();
+            requestAnimationFrame(render);
+        }
+
+        init();
+    </script>
+</body>
+
+</html>
