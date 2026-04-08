@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS Job Hunt Simulator - Nathan Chappie</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon-light.svg" media="(prefers-color-scheme: light)">
+    <link rel="icon" type="image/svg+xml" href="/favicon-dark.svg" media="(prefers-color-scheme: dark)">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            /* Starts in BLINDING LIGHT MODE */
+            --bg-color: #fff;
+            --text-color: #000;
+            --accent-color: #000;
+            --panel-bg: #eee;
+            --border-color: #ccc;
+            --ghost-color: #ff4444;
+        }
+
+        body.dark-mode {
+            --bg-color: #050505;
+            --text-color: #eee;
+            --accent-color: #00FFCC;
+            --panel-bg: rgba(25, 25, 25, 0.9);
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background 0.3s, color 0.3s;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 300px 1fr 300px;
+            height: 100vh;
+            gap: 1px;
+            background: var(--border-color);
+        }
+
+        .panel {
+            background: var(--bg-color);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            overflow-y: auto;
+        }
+
+        /* --- Market Ticker --- */
+        .ticker-container {
+            grid-column: 1 / -1;
+            background: var(--accent-color);
+            color: var(--bg-color);
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .ticker-content {
+            display: inline-block;
+            animation: scroll-left 30s linear infinite;
+        }
+
+        @keyframes scroll-left {
+            0% { transform: translateX(100vw); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* --- Stats Side --- */
+        .stat-card {
+            background: var(--panel-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .stat-val {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 0.5rem;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background: rgba(0,0,0,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        body.dark-mode .progress-container {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--accent-color);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        #exp-bar {
+            background: #ff7e5f;
+            width: 100%; /* Paradox: starts full, goes down */
+        }
+
+        /* --- Main Clicker --- */
+        .main-game {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background: var(--bg-color);
+            position: relative;
+        }
+
+        .click-button {
+            width: 250px;
+            height: 250px;
+            background: var(--accent-color);
+            color: var(--bg-color);
+            border: none;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            transition: transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .click-button:active {
+            transform: scale(0.95);
+        }
+
+        .click-button i {
+            font-size: 3rem;
+        }
+
+        /* --- Shop Side --- */
+        .upgrade-btn {
+            width: 100%;
+            padding: 1rem;
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .upgrade-btn:hover {
+            border-color: var(--accent-color);
+            transform: translateX(5px);
+        }
+
+        .upgrade-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .upgrade-meta {
+            font-size: 0.7rem;
+            opacity: 0.7;
+        }
+
+        /* --- Popups --- */
+        .toast {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            background: #ff4444;
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            max-width: 300px;
+            z-index: 1000;
+            animation: slide-in 0.3s ease-out;
+        }
+
+        @keyframes slide-in {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        /* --- Dark Mode Paywall --- */
+        #dark-mode-curtain {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #fff;
+            color: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            z-index: 9999;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        #dark-mode-curtain h2 { font-size: 2rem; }
+        #dark-mode-curtain p { font-size: 1.2rem; }
+
+        @media (max-width: 1000px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto 1fr auto;
+                height: auto;
+            }
+            .panel { height: auto; }
+            .main-game { padding: 4rem 1rem; }
+        }
+
+        /* --- Feedback --- */
+        .click-text {
+            position: absolute;
+            color: var(--accent-color);
+            font-weight: bold;
+            pointer-events: none;
+            animation: float-up 1s forwards;
+            z-index: 50;
+        }
+
+        @keyframes float-up {
+            to { transform: translateY(-100px); opacity: 0; }
+        }
+
+        .market-alert {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent-color);
+            color: var(--bg-color);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            z-index: 100;
+        }
+
+        .prestige-btn {
+            background: #ffcc00;
+            color: #000;
+            font-weight: bold;
+            padding: 1rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div id="dark-mode-curtain">
+        <h2>⚠️ SYSTEM ERROR: LIGHT MODE ENGAGED</h2>
+        <p>Unlock "Professional Developer Theme" (Dark Mode) at 1,000 Applications Sent.</p>
+        <p>Your eyes must suffer the consequences of your unemployment.</p>
+        <button onclick="document.getElementById('dark-mode-curtain').style.display='none'" style="margin-top:2rem; padding: 1rem 2rem; border-radius: 50px; border: 1px solid #000; cursor: pointer;">I ACCEPT THE PAIN</button>
+    </div>
+
+    <div class="container">
+        <div class="ticker-container">
+            <div class="ticker-content" id="ticker">
+                MARKET UPDATE: STOCK PRICES UP, HIRING DOWN // AI TO REPLACE ALL INTERNS BY TUESDAY // SERIES D FUNDING CANCELLED // RETURN TO OFFICE MANDATE ISSUED // 10 YEARS OF CARBON EXPERIENCE NOW REQUIRED
+            </div>
+        </div>
+
+        <div class="panel stats-side">
+            <h2 style="margin:0">DASHBOARD</h2>
+            <div class="stat-card">
+                <div>APPLICATIONS SENT</div>
+                <div class="stat-val" id="app-count">0</div>
+            </div>
+            <div class="stat-card">
+                <div>GHOST RATE (PITCH TENSION)</div>
+                <div class="stat-val" style="color: #ff4444" id="ghost-rate">0.0%</div>
+                <div class="progress-container">
+                    <div class="progress-bar" id="ghost-progress" style="background:#ff4444"></div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div>YEARS OF EXPERIENCE (PARADOX)</div>
+                <div class="stat-val" id="exp-val">2.000</div>
+                <div class="progress-container">
+                    <div class="progress-bar" id="exp-bar"></div>
+                </div>
+                <div style="font-size: 0.7rem; margin-top: 0.5rem; opacity: 0.6;">(Decreases the more you apply)</div>
+            </div>
+            
+            <div id="prestige-section" style="display:none">
+                <button class="prestige-btn" id="prestige-btn">
+                    <i class="fas fa-redo"></i> ENTER INTERVIEW STAGE (PRESTIGE)
+                </button>
+                <div style="font-size: 0.7rem; margin-top: 0.5rem; opacity:0.8">Reset applications for random "Ego Buffs" (Multipliers).</div>
+            </div>
+
+            <div id="buffs-list" style="margin-top:1rem; font-size:0.8rem">
+                <!-- Buffs injected here -->
+            </div>
+        </div>
+
+        <div class="main-game" id="main-area">
+            <div id="market-alert" class="market-alert" style="display:none">AI HYPE CYCLE ACTIVE (x5 CLICK VALUE)</div>
+            
+            <button class="click-button" id="click-btn">
+                <i class="fas fa-paper-plane"></i>
+                <span>SEND RESUME</span>
+            </button>
+            
+            <div style="margin-top: 2rem; font-size: 0.9rem; opacity: 0.6;" id="footer-msg">
+                "We appreciate your interest, but..."
+            </div>
+
+            <div id="offer-btn-container" style="display:none; margin-top:2rem;">
+                <button class="prestige-btn" style="background: #00FFCC; color: #000; padding: 2rem 4rem; font-size: 2rem;" onclick="winGame()">
+                    VIEW JOB OFFER
+                </button>
+            </div>
+        </div>
+
+        <div class="panel shop-side">
+            <h2 style="margin:0">AUTOMATION (AI SLOP)</h2>
+            <div id="shop-container" style="display:flex; flex-direction:column; gap:0.5rem;">
+                <!-- Upgrades injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const state = {
+            apps: 0,
+            appsTotal: 0,
+            clickValue: 1,
+            autoValue: 0,
+            ghostRate: 0,
+            prestigeCount: 0,
+            expBase: 2,
+            darkModeUnlocked: false,
+            upgrades: {
+                leetcode: { cost: 10, count: 0, power: 1, name: "LeetCode Grind", desc: "+1 App/Click", type: 'click' },
+                chatgpt: { cost: 50, count: 0, power: 1, name: "ChatGPT Generator", desc: "+1 App/Sec", type: 'auto' },
+                coffee: { cost: 250, count: 0, power: 2, name: "Coffee Chat", desc: "x2 Multiplier", type: 'mult' },
+                parser: { cost: 1000, count: 0, power: 0.1, name: "Resume Parser Fixer", desc: "-10% Ghosting Efficiency", type: 'ghost' },
+                branding: { cost: 5000, count: 0, power: 10, name: "Personal Branding", desc: "Thought Leader status (+10/sec)", type: 'auto' }
+            },
+            buffs: [],
+            marketEvent: null, // 'AI_HYPE', 'RTO', 'SERIES_D'
+            lastSave: Date.now()
+        };
+
+        const elements = {
+            appCount: document.getElementById('app-count'),
+            ghostRate: document.getElementById('ghost-rate'),
+            ghostProgress: document.getElementById('ghost-progress'),
+            expVal: document.getElementById('exp-val'),
+            expBar: document.getElementById('exp-bar'),
+            clickBtn: document.getElementById('click-btn'),
+            shop: document.getElementById('shop-container'),
+            ticker: document.getElementById('ticker'),
+            prestigeSection: document.getElementById('prestige-section'),
+            prestigeBtn: document.getElementById('prestige-btn'),
+            buffsList: document.getElementById('buffs-list'),
+            marketAlert: document.getElementById('market-alert'),
+            offerContainer: document.getElementById('offer-btn-container'),
+            footerMsg: document.getElementById('footer-msg')
+        };
+
+        const MESSAGES = [
+            "Decision was difficult...",
+            "Decided to move forward with others...",
+            "Over 10,000 applicants for this role...",
+            "Try again in 6 months...",
+            "We value diversity but not your skill set...",
+            "The position has been filled internally.",
+            "Must have experience with carbon-fiber web dev.",
+            "You are overqualified for this internship."
+        ];
+
+        // --- Save System ---
+        function save() {
+            localStorage.setItem('jobHuntSave', JSON.stringify(state));
+        }
+
+        function load() {
+            const saved = localStorage.getItem('jobHuntSave');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                Object.assign(state, parsed);
+                if (state.appsTotal >= 1000) unlockDarkMode();
+                updateUI();
+            }
+        }
+
+        // --- Logic ---
+        function clickAction(e) {
+            let val = state.clickValue;
+            if (state.marketEvent === 'AI_HYPE') val *= 5;
+            
+            addApps(val);
+            spawnText(e, `+${val}`);
+            
+            // Ghost Tension
+            state.ghostRate += (val * 0.05);
+            if (Math.random() < (state.ghostRate / 100)) {
+                triggerRejection();
+            }
+            updateUI();
+        }
+
+        function addApps(n) {
+            state.apps += n;
+            state.appsTotal += n;
+            if (state.appsTotal >= 1000 && !state.darkModeUnlocked) {
+                unlockDarkMode();
+            }
+            if (state.apps >= 10000) {
+                elements.prestigeSection.style.display = 'block';
+            }
+            if (state.appsTotal >= 1000000) {
+                elements.offerContainer.style.display = 'block';
+            }
+        }
+
+        function triggerRejection() {
+            const msg = MESSAGES[Math.floor(Math.random() * MESSAGES.length)];
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerText = `REJECTION: ${msg}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+            
+            state.ghostRate = 0;
+            // Loss of "hope" multiplier? Nah, keep it simple.
+        }
+
+        function spawnText(e, text) {
+            const div = document.createElement('div');
+            div.className = 'click-text';
+            div.innerText = text;
+            div.style.left = `${e.clientX}px`;
+            div.style.top = `${e.clientY}px`;
+            document.body.appendChild(div);
+            setTimeout(() => div.remove(), 1000);
+        }
+
+        function unlockDarkMode() {
+            state.darkModeUnlocked = true;
+            document.body.classList.add('dark-mode');
+            document.getElementById('dark-mode-curtain').style.display = 'none';
+        }
+
+        function updateUI() {
+            elements.appCount.innerText = Math.floor(state.apps).toLocaleString();
+            elements.ghostRate.innerText = `${state.ghostRate.toFixed(1)}%`;
+            elements.ghostProgress.style.width = `${Math.min(state.ghostRate, 100)}%`;
+            
+            // Experience Paradox
+            const exp = Math.max(0, state.expBase - (state.appsTotal / 100000));
+            elements.expVal.innerText = exp.toFixed(3);
+            elements.expBar.style.width = `${(exp / state.expBase) * 100}%`;
+
+            renderShop();
+            renderBuffs();
+        }
+
+        function renderShop() {
+            elements.shop.innerHTML = '';
+            for (const key in state.upgrades) {
+                const up = state.upgrades[key];
+                const btn = document.createElement('button');
+                btn.className = 'upgrade-btn';
+                btn.disabled = state.apps < up.cost;
+                btn.onclick = () => buyUpgrade(key);
+                btn.innerHTML = `
+                    <div style="display:flex; justify-content:space-between">
+                        <strong>${up.name}</strong>
+                        <span>${up.cost} Apps</span>
+                    </div>
+                    <div class="upgrade-meta">${up.desc} | Owned: ${up.count}</div>
+                `;
+                elements.shop.appendChild(btn);
+            }
+        }
+
+        function buyUpgrade(key) {
+            const up = state.upgrades[key];
+            if (state.apps >= up.cost) {
+                state.apps -= up.cost;
+                up.count++;
+                up.cost = Math.floor(up.cost * 1.5);
+                
+                if (up.type === 'click') state.clickValue += up.power;
+                if (up.type === 'auto') state.autoValue += up.power;
+                
+                updateUI();
+                save();
+            }
+        }
+
+        function prestige() {
+            if (state.apps < 10000) return;
+            
+            state.prestigeCount++;
+            state.apps = 0;
+            // Add a random buff
+            const possibleBuffs = [
+                { name: "Culture Fit", effect: "Ghost rate grows slower", power: 0.9 },
+                { name: "Whiteboard God", effect: "Click power x2", power: 2 },
+                { name: "Nepotism", effect: "Auto apps x1.5", power: 1.5 }
+            ];
+            const buff = possibleBuffs[Math.floor(Math.random() * possibleBuffs.length)];
+            state.buffs.push(buff);
+            
+            // Recalculate multipliers
+            resetCalculations();
+            updateUI();
+            save();
+        }
+
+        function resetCalculations() {
+            // Re-apply click and auto values from owned upgrades and buffs
+            let cv = 1;
+            let av = 0;
+            for (const k in state.upgrades) {
+                const u = state.upgrades[k];
+                if (u.type === 'click') cv += (u.count * u.power);
+                if (u.type === 'auto') av += (u.count * u.power);
+            }
+            
+            state.buffs.forEach(b => {
+                if (b.name === "Whiteboard God") cv *= b.power;
+                if (b.name === "Nepotism") av *= b.power;
+            });
+            
+            state.clickValue = cv;
+            state.autoValue = av;
+        }
+
+        function renderBuffs() {
+            elements.buffsList.innerHTML = '<strong>EGO BUFFS:</strong><br>';
+            if (state.buffs.length === 0) elements.buffsList.innerHTML += "None. Go get rejected more.";
+            state.buffs.forEach(b => {
+                elements.buffsList.innerHTML += `• ${b.name}: ${b.effect}<br>`;
+            });
+        }
+
+        // --- Market Ticker & Events ---
+        function handleMarket() {
+            const rand = Math.random();
+            if (rand < 0.05) {
+                state.marketEvent = 'AI_HYPE';
+                elements.marketAlert.innerText = "AI HYPE CYCLE: CLICK VALUE x5";
+                elements.marketAlert.style.display = 'block';
+                setTimeout(() => { state.marketEvent = null; elements.marketAlert.style.display = 'none'; }, 15000);
+            } else if (rand < 0.1) {
+                state.marketEvent = 'RTO';
+                elements.marketAlert.innerText = "RTO MANDATE: AUTO-APPLY BOTS ON STRIKE";
+                elements.marketAlert.style.display = 'block';
+                setTimeout(() => { state.marketEvent = null; elements.marketAlert.style.display = 'none'; }, 15000);
+            }
+        }
+
+        function gameLoop() {
+            let av = state.autoValue;
+            if (state.marketEvent === 'RTO') av = 0;
+            
+            if (av > 0) {
+                addApps(av / 60);
+                updateUI();
+            }
+            
+            if (Math.random() < 0.001) handleMarket();
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        function winGame() {
+            alert("The position has been filled internally. We will keep your resume on file.");
+            location.reload();
+        }
+
+        // --- Init ---
+        elements.clickBtn.addEventListener('click', clickAction);
+        elements.prestigeBtn.addEventListener('click', prestige);
+        
+        load();
+        updateUI();
+        gameLoop();
+        
+        // Auto-save every 30s
+        setInterval(save, 30000);
+    </script>
+</body>
+</html>
