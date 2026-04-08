@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Demos - Nathan Chappie</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon-light.svg" media="(prefers-color-scheme: light)">
+  <link rel="icon" type="image/svg+xml" href="/favicon-dark.svg" media="(prefers-color-scheme: dark)">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background-color: #050505;
+      color: #eee;
+      text-align: center;
+      overflow-x: hidden;
+    }
+
+    h1.page-title {
+      color: #fff;
+      font-size: 3.5rem;
+      margin: 4rem 0 1.5rem 0;
+      text-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+    }
+
+    .sticky-nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 1.5rem 0;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      margin-bottom: 5rem; /* Increased to prevent overlap */
+      width: 100%;
+    }
+
+    .sticky-nav.is-stuck {
+      background: rgba(10, 10, 10, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 1rem 0;
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    #starfield {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+
+    .demo-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      max-width: 700px;
+      width: 90%;
+      margin: 2rem auto 5rem auto; /* Added margin-top */
+      z-index: 1;
+    }
+    
+    .demo-item {
+      padding: 2rem;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      text-decoration: none;
+      color: inherit;
+      transition: all 0.3s ease;
+      text-align: left;
+    }
+
+    .demo-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .demo-title {
+      font-size: 1.2rem;
+      color: #fff;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    .demo-description {
+      font-size: 0.9rem;
+      color: #aaa;
+    }
+
+    .nav-links {
+      display: flex;
+      justify-content: center;
+      gap: 2.5rem;
+      flex-wrap: wrap; /* Mobile wrap */
+    }
+
+    .nav-links a {
+      color: #aaa;
+      text-decoration: none;
+      font-size: 1.1rem;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      white-space: nowrap;
+    }
+
+    .nav-links a:hover {
+      color: #fff;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    }
+    
+    .nav-links i {
+      font-size: 1.1rem;
+    }
+
+    .nav-links a.active {
+      color: #fff;
+      border-bottom: 2px solid #fff;
+      padding-bottom: 4px;
+    }
+
+    .special-action {
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: center;
+    }
+
+    .special-action a {
+      color: #FF7A5F;
+      text-decoration: none;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      transition: all 0.3s ease;
+      background: rgba(255, 122, 95, 0.05);
+      padding: 0.5rem 1.2rem;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 122, 95, 0.2);
+    }
+
+    .special-action a:hover {
+      background: rgba(255, 122, 95, 0.1);
+      border-color: rgba(255, 122, 95, 0.5);
+      box-shadow: 0 0 15px rgba(255, 122, 95, 0.2);
+    }
+
+    @media (max-width: 768px) {
+      h1.page-title {
+        font-size: 2.2rem;
+        margin: 3rem 0 1rem 0;
+      }
+      
+      .nav-links {
+        gap: 1.25rem;
+      }
+      
+      .nav-links a {
+        font-size: 0.95rem;
+      }
+
+      .sticky-nav {
+        padding: 1rem 0;
+        margin-bottom: 2.5rem;
+      }
+
+      .demo-list {
+        gap: 1.5rem;
+      }
+
+      .demo-item {
+        padding: 1.5rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="starfield"></canvas>
+  <div id="nav-sentinel" style="position: absolute; top: 0; height: 1px; width: 100%;"></div>
+  
+  <h1 class="page-title">Live Demos</h1>
+
+  <header class="sticky-nav" id="main-nav">
+    <div class="special-action">
+      <a href="random.html" target="random_demo_tab"><i class="fas fa-dice"></i> random demo</a>
+    </div>
+    <nav class="nav-links">
+      <a href="../index.html"><i class="fas fa-home"></i> home</a>
+      <a href="../projects.html"><i class="fas fa-briefcase"></i> projects</a>
+      <a href="index.html" class="active"><i class="fas fa-play"></i> demos</a>
+    </nav>
+  </header>
+
+  <div class="demo-list" id="demo-list">
+    <!-- Demos will be injected here -->
+  </div>
+
+  <script src="demos.js"></script>
+  <script>
+    // Sticky Nav Observer
+    const nav = document.getElementById('main-nav');
+    const sentinel = document.getElementById('nav-sentinel');
+    
+    // Simple observer to toggle class when title is scrolled past
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        // When the sentinel is NOT intersecting, it means we've scrolled down
+        // We'll also check the offset of the nav itself to be precise
+        const rect = nav.getBoundingClientRect();
+        if (!entry.isIntersecting && rect.top <= 0) {
+          nav.classList.add('is-stuck');
+        } else {
+          nav.classList.remove('is-stuck');
+        }
+      });
+    }, { threshold: [0] });
+
+    observer.observe(sentinel);
+
+    const listElement = document.getElementById('demo-list');
+    
+    window.demos.forEach(demo => {
+      const item = document.createElement('a');
+      item.href = demo.url;
+      item.target = '_blank';
+      item.rel = 'noopener noreferrer';
+      item.className = 'demo-item';
+      item.innerHTML = `
+        <span class="demo-title">${demo.title}</span>
+        <span class="demo-description">${demo.description}</span>
+      `;
+      listElement.appendChild(item);
+    });
+  </script>
+
+  <script src="../starfield.js"></script>
+</body>
+
+</html>

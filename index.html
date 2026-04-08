@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
     body {
       font-family: 'JetBrains Mono', monospace;
@@ -36,109 +37,169 @@
 
     h1 {
       color: #fff;
-      font-size: 3.5rem;
-      margin-bottom: 2rem;
-      text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+      font-size: 4rem;
+      margin-bottom: 0.75rem;
+      text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
       position: relative;
     }
 
     .links {
+      margin-top: 2rem;
       position: relative;
     }
 
     .links a {
-      font-size: 1.5rem;
-      color: #aaa;
-      margin: 0.5rem 0;
+      font-size: 1.75rem;
+      color: #eee;
+      margin: 0.75rem 0;
       text-decoration: none;
       transition: all 0.3s ease;
-      display: block;
+      display: inline-block;
+      letter-spacing: 0.1rem;
+      position: relative;
+      padding: 0 2rem;
     }
 
     .links a:hover {
       color: #fff;
-      text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+      text-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
+    }
+
+    .links a::before {
+      content: '> ';
+      position: absolute;
+      left: 0;
+      opacity: 0;
+      transition: all 0.3s ease;
+      color: #fff;
+    }
+
+    .links a:hover::before {
+      content: '> ';
+      opacity: 1;
+    }
+
+    .social-icons {
+      margin-top: 1rem;
+    }
+
+    .social-icons a {
+      display: inline-block !important;
+      margin: 0 1rem !important;
+      font-size: 2rem !important;
+      color: #fff !important;
+    }
+
+    /* Unified Sticky Nav */
+    .sticky-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 100;
+      padding: 1rem 0;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      background: rgba(10, 10, 10, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      justify-content: center;
+    }
+
+    .sticky-nav.is-visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .nav-links {
+      display: flex;
+      justify-content: center;
+      gap: 2.5rem;
+    }
+
+    .nav-links a {
+      color: #aaa;
+      text-decoration: none;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .nav-links a:hover {
+      color: #fff;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    }
+
+    .nav-links a.active {
+      color: #fff;
+      border-bottom: 2px solid #fff;
+      padding-bottom: 2px;
     }
   </style>
 </head>
 
 <body>
   <canvas id="starfield"></canvas>
-  <h1>Nathan Chappie</h1>
+  
+  <div id="nav-trigger" style="position: absolute; top: 100px; height: 1px; width: 100%;"></div>
+
+  <header class="sticky-nav" id="main-nav">
+    <nav class="nav-links">
+      <a href="index.html" class="active"><i class="fas fa-home"></i> home</a>
+      <a href="projects.html"><i class="fas fa-briefcase"></i> projects</a>
+      <a href="demo/index.html"><i class="fas fa-play"></i> demos</a>
+    </nav>
+  </header>
+
+  <h1 id="main-title">Nathan Chappie</h1>
+  <!-- <p class="tagline">Aspiring Software Engineer</p> -->
+
   <div class="links">
-    <a href="/portfolio/">portfolio</a>
-    <a href="mailto:contact@nathanchappie.com">contact@nathanchappie.com</a>
-    <a href="https://github.com/chappey" target="_blank" rel="noopener noreferrer">github.com/chappey</a>
+    <div><a href="projects.html" rel="noopener noreferrer">projects</a></div>
+    <div><a href="demo/index.html" rel="noopener noreferrer">live demos</a></div>
+  </div>
+
+  <div style="width: 120px; height: 1px; background: rgba(255,255,255,0.15); margin: 1.25rem auto;"></div>
+
+  <div class="social-icons">
+
+    <a href="mailto:contact@nathanchappie.com" title="Email">
+      <i class="fa-solid fa-envelope"></i>
+    </a>
+
+    <a href="https://github.com/chappey" target="_blank" rel="noopener noreferrer" title="GitHub">
+      <i class="fa-brands fa-github"></i>
+    </a>
+    <a href="https://www.linkedin.com/in/nathanchappie/" target="_blank" rel="noopener noreferrer" title="LinkedIn">
+      <i class="fa-brands fa-linkedin"></i>
+    </a>
 
   </div>
 
   <script>
-    const canvas = document.getElementById('starfield');
-    const ctx = canvas.getContext('2d');
-
-    let width, height, stars = [];
-    const starCount = 400;
-    const speed = 0.05;
-
-    function init() {
-      width = window.innerWidth;
-      height = window.innerHeight;
-      canvas.width = width;
-      canvas.height = height;
-
-      stars = [];
-      for (let i = 0; i < starCount; i++) {
-        stars.push({
-          x: (Math.random() - 0.5) * width,
-          y: (Math.random() - 0.5) * height,
-          z: Math.random() * width,
-          pz: 0
-        });
-        stars[i].pz = stars[i].z;
-      }
-    }
-
-    function animate() {
-      ctx.fillStyle = '#050505';
-      ctx.fillRect(0, 0, width, height);
-
-      const centerX = width / 2;
-      const centerY = height / 2;
-
-      stars.forEach(star => {
-        star.z -= speed * 100;
-
-        if (star.z <= 0) {
-          star.z = width;
-          star.x = (Math.random() - 0.5) * width;
-          star.y = (Math.random() - 0.5) * height;
-          star.pz = star.z;
+    const nav = document.getElementById('main-nav');
+    const trigger = document.getElementById('nav-trigger');
+    
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        // When the trigger is NOT intersecting, we've scrolled past it
+        if (!entry.isIntersecting) {
+          nav.classList.add('is-visible');
+        } else {
+          nav.classList.remove('is-visible');
         }
-
-        const x = (star.x / star.z) * width + centerX;
-        const y = (star.y / star.z) * height + centerY;
-
-        const px = (star.x / star.pz) * width + centerX;
-        const py = (star.y / star.pz) * height + centerY;
-
-        star.pz = star.z;
-
-        const opacity = 1 - star.z / width;
-        ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(px, py);
-        ctx.lineTo(x, y);
-        ctx.stroke();
       });
+    }, { threshold: [0] });
 
-      requestAnimationFrame(animate);
-    }
-
-    window.addEventListener('resize', init);
-    init();
-    animate();
+    observer.observe(trigger);
   </script>
+  <script src="starfield.js"></script>
 </body>
 
 </html>

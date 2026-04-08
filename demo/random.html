@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Demo - Nathan Chappie</title>
+    <style>
+        body {
+            background-color: #050505;
+            color: #eee;
+            font-family: 'JetBrains Mono', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .message {
+            font-size: 1.2rem;
+            letter-spacing: 0.1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="message" id="message">Picking a random demo...</div>
+
+    <script src="demos.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.demos && window.demos.length > 0) {
+                const randomIndex = Math.floor(Math.random() * window.demos.length);
+                const demo = window.demos[randomIndex];
+                window.location.replace(demo.url);
+            } else {
+                document.getElementById('message').innerText = 'No demos found. Redirecting home...';
+                setTimeout(() => {
+                    window.location.replace('/');
+                }, 2000);
+            }
+        });
+    </script>
+</body>
+</html>
