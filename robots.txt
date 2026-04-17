@@ -1,0 +1,57 @@
+User-agent: GPTBot
+Allow: /
+Allow: /index.html
+Allow: /projects.html
+Allow: /demo/
+Allow: /demos/
+Disallow: /404.html
+
+User-agent: OAI-SearchBot
+Allow: /
+Allow: /index.html
+Allow: /projects.html
+Allow: /demo/
+Allow: /demos/
+Disallow: /404.html
+
+User-agent: Claude-Web
+Allow: /
+Allow: /index.html
+Allow: /projects.html
+Allow: /demo/
+Allow: /demos/
+Disallow: /404.html
+
+User-agent: Google-Extended
+Allow: /
+Allow: /index.html
+Allow: /projects.html
+Allow: /demo/
+Allow: /demos/
+Disallow: /404.html
+
+User-agent: PerplexityBot
+Allow: /
+Allow: /index.html
+Allow: /projects.html
+Allow: /demo/
+Allow: /demos/
+Disallow: /404.html
+
+User-agent: CCBot
+Allow: /
+Allow: /index.html
+Allow: /projects.html
+Allow: /demo/
+Allow: /demos/
+Disallow: /404.html
+
+User-agent: *
+Allow: /
+Allow: /index.html
+Allow: /projects.html
+Allow: /demo/
+Allow: /demos/
+Disallow: /404.html
+
+Sitemap: https://nathanchappie.com/sitemap.xml
